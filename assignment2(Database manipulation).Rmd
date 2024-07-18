@@ -1,0 +1,83 @@
+---
+title: "assignment2"
+author: ""
+date: "2023-05-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+library(RSQLite)
+library(DBI)
+
+
+movies <- read.csv("movies500.csv")
+movies_genres <- read.csv("movies500_genres.csv")
+genres <- read.csv("genres.csv")
+
+
+if (file.exists("movies.sqlite")) {
+  file.remove("movies.sqlite")
+}
+
+
+con <- DBI::dbConnect(RSQLite::SQLite(), "movies.sqlite")
+
+
+DBI::dbWriteTable(con, "movies", movies, overwrite = TRUE)
+DBI::dbWriteTable(con, "movies_genres", movies_genres, overwrite = TRUE)
+
+
+DBI::dbGetQuery(con, "SELECT COUNT(*) FROM movies")
+
+
+DBI::dbGetQuery(con, "SELECT title, runtime, release_date FROM movies WHERE runtime > 480 ORDER BY runtime")
+
+DBI::dbGetQuery(con, "SELECT title FROM movies WHERE title LIKE '%love%'")
+
+DBI::dbExecute(con, "DROP TABLE IF EXISTS genres")
+DBI::dbExecute(con, "CREATE TABLE genres (genre_id INTEGER PRIMARY KEY, genre_name TEXT)")
+
+DBI::dbWriteTable(con, "genres", genres, append = TRUE)
+
+
+
+DBI::dbExecute(con, "INSERT OR REPLACE INTO genres (genre_id, genre_name) VALUES (3579, 'University Comedy')")
+
+DBI::dbExecute(con, "UPDATE genres SET genre_name = 'University Tragedy' WHERE genre_id = 3579")
+
+
+movies_cols <- DBI::dbGetQuery(con, "PRAGMA table_info(movies)")$name
+
+
+print(movies_cols)
+
+DBI::dbGetQuery(con, "SELECT genres.genre_id FROM movies 
+                     INNER JOIN movies_genres ON movies.movieid = movies_genres.movie_id 
+                     INNER JOIN genres ON movies_genres.genre_id = genres.genre_id 
+                     WHERE movies.title = 'Running Wild'")
+
+DBI::dbGetQuery(con, "SELECT genres.genre_name FROM movies 
+                     INNER JOIN movies_genres ON movies.movieid = movies_genres.movie_id 
+                     INNER JOIN genres ON movies_genres.genre_id = genres.genre_id 
+                     WHERE movies.title = 'Running Wild'")
+
+DBI::dbGetQuery(con, "SELECT genres.genre_name, COUNT(movies_genres.movie_id) AS movie_count 
+                     FROM genres LEFT JOIN movies_genres ON genres.genre_id = movies_genres.genre_id 
+                     GROUP BY genres.genre_name HAVING movie_count >= 20 
+                     ORDER BY movie_count DESC")
+```
+```{sql connection=con}
+
+
+
+
+
+
+```
+
+
